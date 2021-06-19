@@ -120,7 +120,7 @@ namespace WinML_MoveNet
             if (_debugging)
             {
                 // convert SoftwareBitmap to TensorFloat and bind to input
-                _input.input00 = _tensorizationHelper.SoftwareBitmapToSoftwareTensor(_debugBitmap, "ORG");
+                _input.input00 = _tensorizationHelper.SoftwareBitmapToSoftwareTensor(_debugBitmap);
 
                 // evaluate model
                 _output = await _model.EvaluateAsync(new model_float32_lightningInput { input00 = _input.input00 });
@@ -145,7 +145,7 @@ namespace WinML_MoveNet
                     //await source.SetBitmapAsync(previewFrame);
                     //outputTestImage.Source = source;
 
-                    _input.input00 = _tensorizationHelper.SoftwareBitmapToSoftwareTensor(previewFrame, "ORG");
+                    _input.input00 = _tensorizationHelper.SoftwareBitmapToSoftwareTensor(previewFrame);
 
                     _output = await _model.EvaluateAsync(new model_float32_lightningInput { input00 = _input.input00 });
 
@@ -179,6 +179,7 @@ namespace WinML_MoveNet
                 ellipse.Height = 4;
                 ellipse.StrokeThickness = 2;
 
+                // if tracking confidence above 0.1
                 if (allJoints_vec[i + 2] > 0.1)
                 {
                     // add dot to canvas

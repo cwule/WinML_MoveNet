@@ -12,7 +12,7 @@ namespace WinML_MoveNet
     public sealed class model_float32_lightningInput
     {
         // https://www.tensorflow.org/hub/tutorials/movenet
-        // input is height, width, channel
+        // input is height, width, channel, values 0...255
         public TensorFloat input00; // shape(1,192,192,3) 
     }
     
