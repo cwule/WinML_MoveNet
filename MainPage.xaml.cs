@@ -250,7 +250,7 @@ namespace WinML_MoveNet
                 stopWatch.Stop();
                 TimeSpan ts = stopWatch.Elapsed;
                 string elapsedTime = String.Format("{0:000}", ts.Milliseconds);
-                debugText.Text = "Time: " + elapsedTime;
+                debugText.Text = "Time: " + elapsedTime + " ms";
             }
             else
             {
