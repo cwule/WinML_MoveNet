@@ -1,14 +1,18 @@
 ﻿using Microsoft.AI.MachineLearning;
 using System;
+using System.Diagnostics;
 using System.IO;
-using System.Linq;
+using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading;
 using System.Threading.Tasks;
-using Windows.Devices.Enumeration;
 using Windows.Graphics.Imaging;
 using Windows.Media;
 using Windows.Media.Capture;
+using Windows.Media.Capture.Frames;
+using Windows.Media.MediaProperties;
 using Windows.Storage;
 using Windows.Storage.Streams;
+using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media;
@@ -27,11 +31,12 @@ namespace WinML_MoveNet
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        private MediaCapture _media_capture;
+        //private MediaCapture _mediaCapture;
+        private MediaFrameReader _mediaFrameReader;
 
         // set default values (192x192 default for moveNet lightning)
         private int _imgWidth = 192;
-        private int _imgHeight = 192;
+        private int _imgHeight = 192;            
 
         private model_float32_lightningModel _model;
         private model_float32_lightningInput _input = new model_float32_lightningInput();
@@ -84,34 +89,40 @@ namespace WinML_MoveNet
 
                 // Show the loaded image on the MainPage.xaml  
                 inputTestImage.Source = source;
+
+                ProcessFrame();
             }
             // if not debugging, initialize camera stream; ensure webcam (and mic) are enabled in appxmanifest
             else
             {
-                if (_media_capture == null || _media_capture.CameraStreamState == Windows.Media.Devices.CameraStreamState.Shutdown || _media_capture.CameraStreamState == Windows.Media.Devices.CameraStreamState.NotStreaming)
+                //if (_mediaCapture == null || _mediaCapture.CameraStreamState == Windows.Media.Devices.CameraStreamState.Shutdown || _mediaCapture.CameraStreamState == Windows.Media.Devices.CameraStreamState.NotStreaming)
+                //{
+                    MediaSourceFinder mediaSourceFinder = new MediaSourceFinder();
+                    _mediaFrameReader = await mediaSourceFinder.InitMediaFrameReader();
+
+                //WebCam.Source = _mediaCapture;
+                //}
+                inputTestImage.Source = new SoftwareBitmapSource();
+
+                MediaFrameReaderStartStatus status = await _mediaFrameReader.StartAsync();
+
+                _mediaFrameReader.FrameArrived += MediaFrameReader_FrameArrived;
+
+                if (status == MediaFrameReaderStartStatus.Success)
                 {
-                    if (_media_capture != null)
-                    {
-                        _media_capture.Dispose();
-                    }
-
-                    MediaCaptureInitializationSettings settings = new MediaCaptureInitializationSettings();
-                    var cameras = await DeviceInformation.FindAllAsync(DeviceClass.VideoCapture);
-                    var camera = cameras.FirstOrDefault();
-                    settings.VideoDeviceId = camera.Id;
-
-                    _media_capture = new MediaCapture();
-                    await _media_capture.InitializeAsync(settings);
-                    WebCam.Source = _media_capture;
+                    Debug.WriteLine("MediaFrameReaderStartStatus == Success");
+                }
+                else
+                {
+                    Debug.WriteLine($"MediaFrameReaderStartStatus != Success; {status}");
                 }
 
-                if (_media_capture.CameraStreamState == Windows.Media.Devices.CameraStreamState.NotStreaming)
-                {
-                    await _media_capture.StartPreviewAsync();
-                    WebCam.Visibility = Visibility.Visible;
-                }
+                //if (_mediaCapture.CameraStreamState == Windows.Media.Devices.CameraStreamState.NotStreaming)
+                //{
+                //    await _mediaCapture.StartPreviewAsync();
+                //    WebCam.Visibility = Visibility.Visible;
+                //}
             }
-            ProcessFrame();
         }
 
         private async Task ProcessFrame()
@@ -127,33 +138,7 @@ namespace WinML_MoveNet
                                 
                 // draw output
                 await DrawJoints(_output.Identity);
-            }
-            // model is continuously evaluated for videoframes
-            else
-            {
-                //ensure that frame size either same as onnx input size or resize frame
-                VideoFrame frame = new VideoFrame(BitmapPixelFormat.Bgra8, _imgWidth, _imgHeight);
-
-                // Capture the preview frame
-                using (var currentFrame = await _media_capture.GetPreviewFrameAsync(frame))
-                {
-                    // Collect the resulting frame
-                    SoftwareBitmap previewFrame = currentFrame.SoftwareBitmap;
-                    
-                    // this code can be used to view the preview frame
-                    //SoftwareBitmapSource source = new SoftwareBitmapSource();
-                    //await source.SetBitmapAsync(previewFrame);
-                    //outputTestImage.Source = source;
-
-                    _input.input00 = _tensorizationHelper.SoftwareBitmapToSoftwareTensor(previewFrame);
-
-                    _output = await _model.EvaluateAsync(new model_float32_lightningInput { input00 = _input.input00 });
-
-                    await DrawJoints(_output.Identity);
-                }
-                // process next videoframe
-                ProcessFrame();
-            }
+            }           
         }
 
         // draw dots on a canvas
@@ -199,6 +184,76 @@ namespace WinML_MoveNet
                     j += 1;
                 }
             }
+        }
+
+        private bool _taskRunning = false;
+        private SoftwareBitmap _backBuffer;
+        private void MediaFrameReader_FrameArrived(MediaFrameReader sender, MediaFrameArrivedEventArgs args)
+        {
+            MediaFrameReference mediaFrameReference = sender.TryAcquireLatestFrame();
+            VideoMediaFrame videoMediaFrame = mediaFrameReference?.VideoMediaFrame;
+            SoftwareBitmap softwareBitmap = videoMediaFrame?.SoftwareBitmap;
+
+            if (softwareBitmap != null)
+            {
+                if (softwareBitmap.BitmapPixelFormat != BitmapPixelFormat.Bgra8 ||
+                    softwareBitmap.BitmapAlphaMode != BitmapAlphaMode.Premultiplied)
+                {
+                    softwareBitmap = SoftwareBitmap.Convert(softwareBitmap, BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+                }
+
+                // Swap the processed frame to _backBuffer and dispose of the unused image.
+                softwareBitmap = Interlocked.Exchange(ref _backBuffer, softwareBitmap);
+                softwareBitmap?.Dispose();
+
+                // Changes to XAML ImageElement must happen on UI thread through Dispatcher
+                var task = inputTestImage.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                    async () =>
+                    {
+                        // Don't let two copies of this task run at the same time.
+                        if (_taskRunning)
+                        {
+                            return;
+                        }
+                        _taskRunning = true;
+
+                        // Keep draining frames from the backbuffer until the backbuffer is empty.
+                        SoftwareBitmap latestBitmap;
+                        while ((latestBitmap = Interlocked.Exchange(ref _backBuffer, null)) != null)
+                        {
+                            var imageSource = (SoftwareBitmapSource)inputTestImage.Source;
+                            await imageSource.SetBitmapAsync(latestBitmap);
+                            _input.input00 = _tensorizationHelper.SoftwareBitmapToSoftwareTensor(latestBitmap);
+
+                            _output = await _model.EvaluateAsync(new model_float32_lightningInput { input00 = _input.input00 });
+
+                            await DrawJoints(_output.Identity);
+
+                            latestBitmap.Dispose();
+                        }
+
+                        _taskRunning = false;
+                    });
+
+                mediaFrameReference.Dispose();
+            }
+        }
+
+        private async Task<SoftwareBitmap> CropBitmap(SoftwareBitmap softwareBitmap)
+        {
+            SoftwareBitmap croppedBitmap;
+            using (InMemoryRandomAccessStream stream = new InMemoryRandomAccessStream())
+            {
+                BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
+                // Get the SoftwareBitmap representation of the file
+                croppedBitmap = await decoder.GetSoftwareBitmapAsync(decoder.BitmapPixelFormat, 
+                    BitmapAlphaMode.Ignore, 
+                    new BitmapTransform() { Bounds = new BitmapBounds() { X = (uint)(softwareBitmap.PixelWidth - _imgWidth) / 2, Y = (uint)(softwareBitmap.PixelHeight - _imgHeight) / 2, Width = (uint)_imgWidth, Height = (uint)_imgHeight } }, 
+                    ExifOrientationMode.IgnoreExifOrientation, 
+                    ColorManagementMode.DoNotColorManage);                       
+                
+            }
+            return croppedBitmap;
         }
 
     }

@@ -9,7 +9,7 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Grid>
-        <Image x:Name="inputTestImage" Height="192" Margin="0,0,0,0" Width="192"/>
+        <Image x:Name="inputTestImage" Height="240" Margin="0,0,0,0" Width="320"/>
         <CaptureElement x:Name="WebCam" Margin="0,0,0,0" Height="192" Width="192"/>
         <Canvas x:Name="outputCanvas" Height="192" Margin="0,0,0,0" Width="192"/>
     </Grid>
