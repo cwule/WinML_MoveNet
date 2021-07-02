@@ -43,6 +43,8 @@ namespace WinML_MoveNet
         private model_float32_lightningOutput _output;
 
         private bool _debugging = false;
+        Stopwatch stopWatch = new Stopwatch();
+
         private SoftwareBitmap _debugBitmap;
         private TensorizationHelper _tensorizationHelper = new TensorizationHelper();
 
@@ -184,6 +186,7 @@ namespace WinML_MoveNet
                     j += 1;
                 }
             }
+            MeasureFrameRate();
         }
 
         private bool _taskRunning = false;
@@ -220,15 +223,16 @@ namespace WinML_MoveNet
                         // Keep draining frames from the backbuffer until the backbuffer is empty.
                         SoftwareBitmap latestBitmap;
                         while ((latestBitmap = Interlocked.Exchange(ref _backBuffer, null)) != null)
-                        {
-                            var imageSource = (SoftwareBitmapSource)inputTestImage.Source;
-                            await imageSource.SetBitmapAsync(latestBitmap);
+                        {                            
                             _input.input00 = _tensorizationHelper.SoftwareBitmapToSoftwareTensor(latestBitmap);
 
                             _output = await _model.EvaluateAsync(new model_float32_lightningInput { input00 = _input.input00 });
 
-                            await DrawJoints(_output.Identity);
+                            var imageSource = (SoftwareBitmapSource)inputTestImage.Source;
+                            await imageSource.SetBitmapAsync(latestBitmap);
 
+                            await DrawJoints(_output.Identity);
+                                                        
                             latestBitmap.Dispose();
                         }
 
@@ -239,22 +243,20 @@ namespace WinML_MoveNet
             }
         }
 
-        private async Task<SoftwareBitmap> CropBitmap(SoftwareBitmap softwareBitmap)
+        private void MeasureFrameRate()
         {
-            SoftwareBitmap croppedBitmap;
-            using (InMemoryRandomAccessStream stream = new InMemoryRandomAccessStream())
+            if (stopWatch.IsRunning)
             {
-                BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
-                // Get the SoftwareBitmap representation of the file
-                croppedBitmap = await decoder.GetSoftwareBitmapAsync(decoder.BitmapPixelFormat, 
-                    BitmapAlphaMode.Ignore, 
-                    new BitmapTransform() { Bounds = new BitmapBounds() { X = (uint)(softwareBitmap.PixelWidth - _imgWidth) / 2, Y = (uint)(softwareBitmap.PixelHeight - _imgHeight) / 2, Width = (uint)_imgWidth, Height = (uint)_imgHeight } }, 
-                    ExifOrientationMode.IgnoreExifOrientation, 
-                    ColorManagementMode.DoNotColorManage);                       
-                
+                stopWatch.Stop();
+                TimeSpan ts = stopWatch.Elapsed;
+                string elapsedTime = String.Format("{0:000}", ts.Milliseconds);
+                debugText.Text = "Time: " + elapsedTime;
             }
-            return croppedBitmap;
+            else
+            {
+                stopWatch.Reset();
+                stopWatch.Start();
+            }            
         }
-
     }
 }
