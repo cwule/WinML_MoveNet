@@ -1,5 +1,7 @@
 ﻿using Microsoft.AI.MachineLearning;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -38,6 +40,8 @@ namespace WinML_MoveNet
         private model_float32_lightningOutput _output;
 
         private bool _debugging = false;
+        Stopwatch _stopWatch = new Stopwatch();
+
         private SoftwareBitmap _debugBitmap;
         private TensorizationHelper _tensorizationHelper = new TensorizationHelper();
 
@@ -198,6 +202,24 @@ namespace WinML_MoveNet
                     confidence[j] = allJoints_vec[i + 2];
                     j += 1;
                 }
+            }
+            MeasureFrameRate();
+        }
+
+        private void MeasureFrameRate()
+        {
+            if (_stopWatch.IsRunning)
+            {
+                _stopWatch.Stop();
+                TimeSpan ts = _stopWatch.Elapsed; 
+                string elapsedTime = String.Format("{0:000}", ts.Milliseconds);
+                
+                debugText.Text = "Time: " + elapsedTime + " ms";
+            }
+            else
+            {
+                _stopWatch.Reset();
+                _stopWatch.Start();
             }
         }
 

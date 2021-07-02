@@ -14,7 +14,7 @@
   <mp:PhoneIdentity PhoneProductId="7c4c3638-f039-4b8d-acd2-d2242bb140d9" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>WinML_MoveNet</DisplayName>
+    <DisplayName>WinML_aMoveNet</DisplayName>
     <PublisherDisplayName>cwule</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -32,10 +32,10 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="WinML_MoveNet.App">
       <uap:VisualElements
-        DisplayName="WinML_MoveNet"
+        DisplayName="WinML_aMoveNet"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png"
-        Description="WinML_MoveNet"
+        Description="WinML_aMoveNet"
         BackgroundColor="transparent">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>
         <uap:SplashScreen Image="Assets\SplashScreen.png" />

@@ -12,5 +12,6 @@
         <Image x:Name="inputTestImage" Height="192" Margin="0,0,0,0" Width="192"/>
         <CaptureElement x:Name="WebCam" Margin="0,0,0,0" Height="192" Width="192"/>
         <Canvas x:Name="outputCanvas" Height="192" Margin="0,0,0,0" Width="192"/>
+        <TextBlock x:Name="debugText" Margin="0,220,0,0" Text="TextBox" Height="40" Width="200"/>
     </Grid>
 </Page>

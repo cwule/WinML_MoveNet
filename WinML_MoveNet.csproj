@@ -7,8 +7,8 @@
     <ProjectGuid>{210C9D68-C36F-4D79-AD21-66C3473203B5}</ProjectGuid>
     <OutputType>AppContainerExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>WinML_MoveNet</RootNamespace>
-    <AssemblyName>WinML_MoveNet</AssemblyName>
+    <RootNamespace>WinML_aMoveNet</RootNamespace>
+    <AssemblyName>WinML_aMoveNet</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
     <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.19041.0</TargetPlatformVersion>
