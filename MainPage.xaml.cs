@@ -39,6 +39,7 @@ namespace WinML_MoveNet
         private model_float32_lightningInput _input = new model_float32_lightningInput();
         private model_float32_lightningOutput _output;
 
+        // _debugging true: image input, false: webcam input
         private bool _debugging = false;
         Stopwatch _stopWatch = new Stopwatch();
 
@@ -49,7 +50,7 @@ namespace WinML_MoveNet
         {
             this.InitializeComponent();
 
-            InitModelAsync();            
+            InitModelAsync();
         }
 
         // initialize onnx model
@@ -69,10 +70,10 @@ namespace WinML_MoveNet
             if (_debugging)
             {
                 // this is a simple 3x5 image with well defined RGB values, allowing easier debugging of the input arrays
-                //StorageFile file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/TestImg3Wx5H.png"));
+                // StorageFile file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/TestImg3Wx5H.png"));
 
                 // this is an image of a person formatted to the input size (192x192 for moveNet lightning)
-                StorageFile file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/personsquat_192x192.jpg"));
+                StorageFile file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///Assets/person_192x192.png"));
 
                 // convert the loaded image to a SoftwareBitmap
                 Stream ms = await file.OpenStreamForReadAsync();
